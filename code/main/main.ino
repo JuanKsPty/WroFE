@@ -1,15 +1,76 @@
 const int enA = 2;
 const int in1 = 3;
 const int in2 = 4;
-int redled = 32;      // initialize digital pin 5.
+int redled = 32;     // initialize digital pin 5.
 int yellowled = 31;  // initialize digital pin 4.
 int greenled = 30;   // initialize digital pin 3.
+float yawPitRoll[3];
+float gyroValues[3];
+float accelValues[3];
+
+#include <Servo.h>
+#include "Simple_MPU6050.h"
+#define MPU6050_DEFAULT_ADDRESS 0x68  // address pin low (GND), default for InvenSense evaluation board
+
+Simple_MPU6050 mpu;
+Servo servoMotor;
+ 
+void Print_Values(int16_t *gyro, int16_t *accel, int32_t *quat) {
+  Quaternion q;
+  VectorFloat gravity;
+  float ypr[3] = { 0, 0, 0 };
+  float xyz[3] = { 0, 0, 0 };
+  mpu.GetQuaternion(&q, quat);
+  mpu.GetGravity(&gravity, &q);
+  mpu.GetYawPitchRoll(ypr, &q, &gravity);
+  mpu.ConvertToDegrees(ypr, xyz);
+  yawPitRoll[0] = xyz[0];
+  yawPitRoll[1] = xyz[2];
+  yawPitRoll[2] = xyz[1];
+  gyroValues[0] = gyro[0];
+  gyroValues[1] = gyro[1];
+  gyroValues[2] = gyro[2];
+  accelValues[0] = accel[0];
+  accelValues[2] = accel[1];
+  accelValues[3] = accel[2];
+}
+
+void ledRed() {
+  digitalWrite(yellowled, LOW);  // turn off yellow LED
+  digitalWrite(greenled, LOW);   // turn off green LED
+  digitalWrite(redled, HIGH);    // turn on red LED
+}
+void ledGreen() {
+  digitalWrite(redled, LOW);     // turn on red LED
+  digitalWrite(yellowled, LOW);  // turn off yellow LED
+  digitalWrite(greenled, HIGH);  // turn off green LED
+}
+void ledYellow() {
+  digitalWrite(redled, LOW);      // turn on red LED
+  digitalWrite(greenled, LOW);    // turn off green LED
+  digitalWrite(yellowled, HIGH);  // turn off yellow LED
+}
+void ledOff() {
+  digitalWrite(redled, LOW);     // turn on red LED
+  digitalWrite(greenled, LOW);   // turn off green LED
+  digitalWrite(yellowled, LOW);  // turn off yellow LED
+}
+void left() {
+  servoMotor.write(55); // turn off yellow LED
+}
+void right() {
+  servoMotor.write(127); // turn off yellow LED
+}
+void straight() {
+  servoMotor.write(100); // turn off yellow LED
+}
 
 void setup() {
   // Set all the motor control pins to outputs
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
+  servoMotor.attach(33);//servo
 
   pinMode(redled, OUTPUT);     // set the pin with red LED as “output”
   pinMode(yellowled, OUTPUT);  // set the pin with yellow LED as “output”
@@ -18,74 +79,55 @@ void setup() {
   // Turn off motors - Initial state
   digitalWrite(in1, LOW);
   digitalWrite(in2, LOW);
+  
+
+  Serial.begin(115200);
+  //while (!Serial)
+    //;  // wait for Leonardo enumeration, others continue immediately
+  Serial.println(F("Start:"));
+
+  // Setup the MPU and TwoWire aka Wire library all at once
+  mpu.begin();
+  mpu.Set_DMP_Output_Rate_Hz(10);  // Set the DMP output rate from 200Hz to 5 Minutes.
+  //mpu.Set_DMP_Output_Rate_Seconds(10);   // Set the DMP output rate in Seconds
+  //mpu.Set_DMP_Output_Rate_Minutes(5);    // Set the DMP output rate in Minute
+  mpu.CalibrateMPU();         // Calibrates the MPU.
+  mpu.load_DMP_Image();       // Loads the DMP image into the MPU and finish configuration.
+  mpu.on_FIFO(Print_Values);  // Set callback function that is triggered when FIFO Data is retrieved
+  // Setup is complete!
 }
 
 void loop() {
-  digitalWrite(greenled, HIGH);  //// turn on green LED
-  delay(5000);                   // wait 5 seconds
-  digitalWrite(greenled, LOW);   // turn off green LED
-  for (int i = 0; i < 3; i++)    // blinks for 3 times
-  {
-    delay(500);                     // wait 0.5 seconds
-    digitalWrite(yellowled, HIGH);  // turn on yellow LED
-    delay(500);                     // wait 0.5 seconds
-    digitalWrite(yellowled, LOW);   // turn off yellow LED
-  }
-  delay(500);                  // wait 0.5 seconds
-  digitalWrite(redled, HIGH);  // turn on red LED
-  delay(5000);                 // wait 5 seconds
-  digitalWrite(redled, LOW);   // turn off red LED
-  delay(100000);
-  directionControl();
-  delay(1000);
-  speedControl();
-  delay(1000);
+  mpu.dmp_read_fifo(false);
+  Serial.println();
+  Serial.print(yawPitRoll[0]);
+
+  straight();
+  motorForward(230);
+  delay(3000);
+  motorOff();
+  motorForward(230);
+  right();
+  delay(3000);
+  motorOff();
+  delay(10000);
 }
 
 // This function lets you control spinning direction of motors
-void directionControl() {
-  // Set motors to maximum speed
-  // For PWM maximum possible values are 0 to 255
-  analogWrite(enA, 255);
-
-  // Turn on motor A & B
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
-  delay(2000);
-
-  // Now change motor directions
+void motorForward(int pwm_enA) {
+  analogWrite(enA, pwm_enA);
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
-  delay(2000);
-
-  // Turn off motors
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, LOW);
 }
-
+void motorBackward(int pwm_enA) {
+  analogWrite(enA, pwm_enA);
+  digitalWrite(in2, HIGH);
+  digitalWrite(in1, LOW);
+}
 // This function lets you control speed of the motors
-void speedControl() {
+void motorOff() {
   // Turn on motors
   digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);
-
-
-
-  // Accelerate from zero to maximum speed
-  for (int i = 0; i < 256; i++) {
-    analogWrite(enA, i);
-
-    delay(20);
-  }
-
-  // Decelerate from maximum speed to zero
-  for (int i = 255; i >= 0; --i) {
-    analogWrite(enA, i);
-
-    delay(20);
-  }
-
-  // Now turn off motors
-  digitalWrite(in1, LOW);
   digitalWrite(in2, LOW);
+  digitalWrite(enA, LOW);
 }
