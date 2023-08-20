@@ -1,14 +1,14 @@
-#define s0 8
-#define s1 9
-#define s2 12
-#define s3 11
-#define sensorSalida 10
+#define s0 24
+#define s1 22
+#define s2 48
+#define s3 44
+#define sensorSalida 52
 
 int Rojo_Frec = 0;
-int Verde_Frec = 0; //variables
+int Verde_Frec = 0;  //variables
 int Azul_Frec = 0;
 
-void setup(){
+void setup() {
   pinMode(s0, OUTPUT);
   pinMode(s1, OUTPUT);
   pinMode(s2, OUTPUT);
@@ -21,35 +21,46 @@ void setup(){
   Serial.begin(9600);
 }
 
-void loop(){
+void loop() {
 
-  digitalWrite(s2, LOW);         //lectura de color rojo 
+  digitalWrite(s2, LOW);  //lectura de color rojo
   digitalWrite(s3, LOW);
-  delay(100);
+  //delay(100);
   Rojo_Frec = pulseIn(sensorSalida, LOW);
-  Serial.print(" R= "); Serial.print(Rojo_Frec);
-  delay(100);
+  Serial.println();
+  Serial.print(" R= ");
+  Serial.print(Rojo_Frec);
+  //delay(100);
 
 
-  digitalWrite(s2, HIGH);      //lectura color verde
+  digitalWrite(s2, HIGH);  //lectura color verde
   digitalWrite(s3, HIGH);
-  delay(100);
+  //delay(100);
   Verde_Frec = pulseIn(sensorSalida, LOW);
-  Serial.print(" V= "); Serial.print(Verde_Frec);
-  delay(100);
+  Serial.println();
+  Serial.print(" V= ");
+  Serial.print(Verde_Frec);
+  //delay(100);
 
 
-  digitalWrite(s2,LOW);
-  digitalWrite(s3,HIGH);
-  delay(100);
+  digitalWrite(s2, LOW);
+  digitalWrite(s3, HIGH);
+  //delay(100);
   Azul_Frec = pulseIn(sensorSalida, LOW);
-  Serial.print(" A= "); Serial.print(Azul_Frec);  
-  delay(100);
+  Serial.println();
+  Serial.print(" A= ");
+  Serial.print(Azul_Frec);
+  //delay(100);
 
-
-//valores de la calibracion 
-if (Rojo_Frec < 130 && Verde_Frec < 120 && Azul_Frec < 95) Serial.print(" . ***BLANCO**");
-if (Rojo_Frec < 110 && Verde_Frec < 130 && Azul_Frec < 120  ) Serial.print(" . ***Naranja**");
-if (Rojo_Frec < 165 && Verde_Frec < 160 && Azul_Frec < 130 ) Serial.print(" . ***Azul**");
-
+  delay(1000);
+  int rgbValue = Rojo_Frec + Verde_Frec + Azul_Frec;
+  //valores de la calibracion
+  if (rgbValue > 720) {
+    Serial.print(" . ***Azul**");
+  } else if (rgbValue > 470 && rgbValue < 700) {
+    Serial.print(" . ***Naranja**");
+  }
+  else {
+  Serial.print(" . ***BLANCO**");
+  }
 }

@@ -4,12 +4,28 @@ const int in2 = 4;
 int redled = 32;     // initialize digital pin 5.
 int yellowled = 31;  // initialize digital pin 4.
 int greenled = 30;
+const int trigPinFront = 9;
+const int echoPinFront = 10;
+const int trigPinLeft = 7;
+const int echoPinLeft = 8;
+const int trigPinRight = 5;
+const int echoPinRight = 6;
 const int buttonPin = 11;  // button
+long durationFront;
+int distanceFront;
+long durationLeft;
+int distanceLeft;
+long durationRight;
+int distanceRight;
 float yawPitRoll[3];
 float gyroValues[3];
 float accelValues[3];
 int numberOfLineRight = 1;
 int numberOfLineLeft = 1;
+int numberOFLaps = 0;
+bool rightDirection = false;
+bool leftDirection = false;
+bool start = false;
 
 #include <Servo.h>
 #include "Simple_MPU6050.h"
@@ -85,23 +101,41 @@ void right() {
 void straight() {
   servoMotor.write(100);  // turn off yellow LED
 }
+void distanceAll() {
+  digitalWrite(trigPinFront, HIGH);
+  digitalWrite(trigPinFront, LOW);
+  durationFront = pulseIn(echoPinFront, HIGH);
+  distanceFront = (durationFront / 2) / 29.1;
 
+  digitalWrite(trigPinLeft, HIGH);
+  digitalWrite(trigPinLeft, LOW);
+  durationLeft = pulseIn(echoPinLeft, HIGH);
+  distanceLeft = (durationLeft / 2) / 29.1;
+
+  digitalWrite(trigPinRight, HIGH);
+  digitalWrite(trigPinRight, LOW);
+  durationRight = pulseIn(echoPinRight, HIGH);
+  distanceRight = (durationRight / 2) / 29.1;
+}
 
 void rotateRight() {
+  if (numberOfLineRight == 5) {
+    numberOfLineRight = 1;
+  }
   right();
   motorForward(200);
   switch (numberOfLineRight) {
     case 1:
-      while (yawPitRoll[0] < 88) {
-      Serial.print("case1");
+      while (yawPitRoll[0] < 87) {
+        Serial.print("case1");
         mpu.dmp_read_fifo(false);
         Serial.println();
         Serial.print(yawPitRoll[0]);
       }
       break;
     case 2:
-      while (yawPitRoll[0] < 175) {
       Serial.print("case2");
+      while (yawPitRoll[0] < 175) {
         mpu.dmp_read_fifo(false);
         Serial.println();
         Serial.print(yawPitRoll[0]);
@@ -115,6 +149,10 @@ void rotateRight() {
       while (yawPitRoll[0] < -95) {
         Serial.print("case 3");
         mpu.dmp_read_fifo(false);
+        if (yawPitRoll[0] > 0) {
+          Serial.println("cambia");
+          yawPitRoll[0] = yawPitRoll[0] * -1;
+        }
         Serial.println();
         Serial.print(yawPitRoll[0]);
       }
@@ -130,21 +168,69 @@ void rotateRight() {
   }
   motorOff();
   straight();
-  if (numberOfLineRight > 4) {
-    numberOfLineRight = 1;
-  } else {
-    numberOfLineRight += 1;
-  }
+  numberOfLineRight += 1;
 }
-void acomodarse() {
+void rotateLeft() {
+  if (numberOfLineLeft == 5) {
+    numberOfLineLeft = 1;
+  }
+  left();
+  //motorForward(200);
+  switch (numberOfLineLeft) {
+    case 1:
+      while (yawPitRoll[0] > -87) {
+        Serial.print("case1");
+        mpu.dmp_read_fifo(false);
+        Serial.println();
+        Serial.print(yawPitRoll[0]);
+      }
+      break;
+    case 2:
+      while (yawPitRoll[0] > -175) {
+        Serial.print("case2");
+        mpu.dmp_read_fifo(false);
+        Serial.println();
+        Serial.print(yawPitRoll[0]);
+      }
+      break;
+    case 3:
+      if (yawPitRoll[0] < 0) {
+        Serial.println("cambia");
+        yawPitRoll[0] = yawPitRoll[0] * -1;
+      }
+      while (yawPitRoll[0] > 95) {
+        Serial.print("case 3");
+        mpu.dmp_read_fifo(false);
+        if (yawPitRoll[0] < 0) {
+          Serial.println("cambia");
+          yawPitRoll[0] = yawPitRoll[0] * -1;
+        }
+        Serial.println();
+        Serial.print(yawPitRoll[0]);
+      }
+      break;
+    case 4:
+      Serial.print("Case4");
+      while (yawPitRoll[0] > 0) {
+        mpu.dmp_read_fifo(false);
+        Serial.println();
+        Serial.print(yawPitRoll[0]);
+      }
+      break;
+  }
+  motorOff();
+  straight();
+  numberOfLineLeft += 1;
+}
+void acomodarseRight() {
   switch (numberOfLineRight) {
     case 1:
-      if (yawPitRoll[0] > 70 && yawPitRoll[0] < 87) {
+      if (yawPitRoll[0] > -20 && yawPitRoll[0] < -5) {
         right();
-        Serial.print("righ");
-      } else if (yawPitRoll[0] > 93 && yawPitRoll[0] < 110) {
+        //Serial.print("righ");
+      } else if (yawPitRoll[0] > 5 && yawPitRoll[0] < 20) {
         left();
-        Serial.print("izq");
+        //Serial.print("izq");
       } else {
         straight();
       }
@@ -159,6 +245,84 @@ void acomodarse() {
       } else {
         straight();
       }
+      break;
+    case 3:
+      if (yawPitRoll[0] > 160 && yawPitRoll[0] < 175) {
+        right();
+        Serial.print("righ");
+      } else if (yawPitRoll[0] > -175 && yawPitRoll[0] < -160) {
+        left();
+        Serial.print("izq");
+      } else {
+        straight();
+      }
+      break;
+    case 4:
+      if (yawPitRoll[0] > -110 && yawPitRoll[0] < -95) {
+        right();
+        Serial.print("righ");
+      } else if (yawPitRoll[0] > -85 && yawPitRoll[0] < -70) {
+        left();
+        Serial.print("izq");
+      } else {
+        straight();
+      }
+      break;
+  }
+}
+void acomodarseLeft() {
+  switch (numberOfLineLeft) {
+    case 1:
+      if (yawPitRoll[0] > -20 && yawPitRoll[0] < -5) {
+        right();
+        //Serial.print("righ");
+      } else if (yawPitRoll[0] > 5 && yawPitRoll[0] < 20) {
+        left();
+        //Serial.print("izq");
+      } else {
+        straight();
+      }
+      break;
+    case 2:
+      if (yawPitRoll[0] > -110 && yawPitRoll[0] < -95) {
+        right();
+        Serial.print("righ");
+      } else if (yawPitRoll[0] > -85 && yawPitRoll[0] < -70) {
+        left();
+        Serial.print("izq");
+      } else {
+        straight();
+      }
+      break;
+    case 3:
+      if (yawPitRoll[0] > 160 && yawPitRoll[0] < 175) {
+        right();
+        Serial.print("righ");
+      } else if (yawPitRoll[0] > -175 && yawPitRoll[0] < -160) {
+        left();
+        Serial.print("izq");
+      } else {
+        straight();
+      }
+      break;
+    case 4:
+      if (yawPitRoll[0] > 70 && yawPitRoll[0] < 87) {
+        right();
+        Serial.print("righ");
+      } else if (yawPitRoll[0] > 93 && yawPitRoll[0] < 110) {
+        left();
+        Serial.print("izq");
+      } else {
+        straight();
+      }
+      break;
+  }
+}
+void checkCorner() {
+  if (distanceLeft > distanceRight) {
+    leftDirection = true;
+  } else {
+    rightDirection = true;
   }
 }
 void setup() {
@@ -166,6 +330,13 @@ void setup() {
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
+  pinMode(trigPinFront, OUTPUT);  // Sets the trigPin as an Output
+  pinMode(echoPinFront, INPUT);   // Sets the echoPin as an Input
+  pinMode(trigPinLeft, OUTPUT);   // Sets the trigPin as an Output
+  pinMode(echoPinLeft, INPUT);    // Sets the echoPin as an Input
+  pinMode(trigPinRight, OUTPUT);  // Sets the trigPin as an Output
+  pinMode(echoPinRight, INPUT);   // Sets the echoPin as an Input
+
   servoMotor.attach(33);  //servo
 
   pinMode(redled, OUTPUT);     // set the pin with red LED as “output”
@@ -179,6 +350,13 @@ void setup() {
   Serial.begin(115200);
   straight();
   //while (!Serial)
+  while (start) {
+    byte buttonState = digitalRead(buttonPin);
+    if (buttonState == LOW) {
+      start = true;
+      ledYellow();
+    }
+  }
   //;  // wait for Leonardo enumeration, others continue immediately
   Serial.println(F("Start:"));
 
@@ -187,10 +365,11 @@ void setup() {
   mpu.Set_DMP_Output_Rate_Hz(10);  // Set the DMP output rate from 200Hz to 5 Minutes.
   //mpu.Set_DMP_Output_Rate_Seconds(10);   // Set the DMP output rate in Seconds
   //mpu.Set_DMP_Output_Rate_Minutes(5);    // Set the DMP output rate in Minute
-  mpu.CalibrateMPU();         // Calibrates the MPU.
+  mpu.CalibrateMPU(10);       // Calibrates the MPU.
   mpu.load_DMP_Image();       // Loads the DMP image into the MPU and finish configuration.
   mpu.on_FIFO(Print_Values);  // Set callback function that is triggered when FIFO Data is retrieved
-  // Setup is complete!
+                              // Setup is complete!
+
   ledGreen();
 }
 
@@ -198,6 +377,10 @@ void loop() {
   mpu.dmp_read_fifo(false);
   byte buttonState = digitalRead(buttonPin);
   if (buttonState == LOW) {
-    rotateRight();
+    numberOfLineLeft = 4;
   }
+  acomodarseLeft();
+  Serial.println();
+  Serial.print(numberOfLineLeft);
+  ledYellow();
 }
