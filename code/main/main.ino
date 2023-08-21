@@ -169,13 +169,14 @@ void rotateRight() {
   motorOff();
   straight();
   numberOfLineRight += 1;
+  numberOFLaps += 1;
 }
 void rotateLeft() {
   if (numberOfLineLeft == 5) {
     numberOfLineLeft = 1;
   }
   left();
-  //motorForward(200);
+  motorForward(200);
   switch (numberOfLineLeft) {
     case 1:
       while (yawPitRoll[0] > -87) {
@@ -221,6 +222,7 @@ void rotateLeft() {
   motorOff();
   straight();
   numberOfLineLeft += 1;
+  numberOFLaps += 1;
 }
 void acomodarseRight() {
   switch (numberOfLineRight) {
@@ -318,11 +320,59 @@ void acomodarseLeft() {
       break;
   }
 }
-void checkCorner() {
+void checkCorner() {  // cambia el valor si, tiene que girar a la izquierda o a la derecha
   if (distanceLeft > distanceRight) {
     leftDirection = true;
   } else {
     rightDirection = true;
+  }
+}
+void rotateDepend() {
+  if (leftDirection == true) {
+    rotateLeft();
+  } else {
+    rotateRight();
+  }
+}
+void acomodarseDepend() {
+  if (leftDirection == true) {
+    acomodarseLeft();
+    ledRed();
+  } else {
+    acomodarseRight();
+    ledYellow();
+  }
+}
+void acomodarWall () {
+      distanceAll();
+      if (distanceLeft <= 10) {
+        right();
+        //Serial.print("righ");
+      } else if (distanceRight <= 10 {
+        left();
+        //Serial.print("izq");
+      } else {
+        //
+      }
+}
+void run() {
+  distanceAll();
+  if (distanceFront <= 35) {
+    checkCorner();
+    rotateDepend();
+    while (true) {
+      distanceAll();
+      if (distanceFront <= 35) {
+        rotateDepend();
+      } else {
+        motorForward(200);
+        acomodarseLeft();
+      }
+    }
+  } else {
+    motorForward(200);
+    acomodarseDepend();
+    ledGreen();
   }
 }
 void setup() {
@@ -350,7 +400,7 @@ void setup() {
   Serial.begin(115200);
   straight();
   //while (!Serial)
-  while (start) {
+  while (!start) {
     byte buttonState = digitalRead(buttonPin);
     if (buttonState == LOW) {
       start = true;
@@ -375,12 +425,24 @@ void setup() {
 
 void loop() {
   mpu.dmp_read_fifo(false);
-  byte buttonState = digitalRead(buttonPin);
-  if (buttonState == LOW) {
-    numberOfLineLeft = 4;
+  distanceAll();
+  if (distanceFront <= 35) {
+    checkCorner();
+    rotateDepend();
+    while (true) {
+      mpu.dmp_read_fifo(false);
+      distanceAll();
+      if (distanceFront <= 35) {
+        rotateDepend();
+      } else {
+        motorForward(200);
+        acomodarseDepend();
+        acomodarWall();
+      }
+    }
+  } else {
+    motorForward(200);
+    acomodarseDepend();
+    ledGreen();
   }
-  acomodarseLeft();
-  Serial.println();
-  Serial.print(numberOfLineLeft);
-  ledYellow();
 }
