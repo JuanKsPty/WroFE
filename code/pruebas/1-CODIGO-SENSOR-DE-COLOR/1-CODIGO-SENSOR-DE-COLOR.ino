@@ -25,40 +25,22 @@ void loop() {
 
   digitalWrite(s2, LOW);  //lectura de color rojo
   digitalWrite(s3, LOW);
-  //delay(100);
   Rojo_Frec = pulseIn(sensorSalida, LOW);
-  Serial.println();
-  Serial.print(" R= ");
-  Serial.print(Rojo_Frec);
-  //delay(100);
-
-
+  
   digitalWrite(s2, HIGH);  //lectura color verde
   digitalWrite(s3, HIGH);
-  //delay(100);
   Verde_Frec = pulseIn(sensorSalida, LOW);
-  Serial.println();
-  Serial.print(" V= ");
-  Serial.print(Verde_Frec);
-  //delay(100);
-
 
   digitalWrite(s2, LOW);
   digitalWrite(s3, HIGH);
-  //delay(100);
   Azul_Frec = pulseIn(sensorSalida, LOW);
-  Serial.println();
-  Serial.print(" A= ");
-  Serial.print(Azul_Frec);
-  //delay(100);
-
-  delay(1000);
+  
   int rgbValue = Rojo_Frec + Verde_Frec + Azul_Frec;
+  Serial.print(rgbValue);
   //valores de la calibracion
-  if (rgbValue > 720) {
-    Serial.print(" . ***Azul**");
-  } else if (rgbValue > 470 && rgbValue < 700) {
-    Serial.print(" . ***Naranja**");
+  Serial.println();
+  if (rgbValue > 420) {
+    Serial.print(" . ***color**");
   }
   else {
   Serial.print(" . ***BLANCO**");

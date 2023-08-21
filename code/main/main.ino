@@ -26,10 +26,19 @@ int numberOFLaps = 0;
 bool rightDirection = false;
 bool leftDirection = false;
 bool start = false;
+int Rojo_Frec = 0;
+int Verde_Frec = 0;  //variables
+int Azul_Frec = 0;
+bool isSensorOnColor;
 
 #include <Servo.h>
 #include "Simple_MPU6050.h"
 #define MPU6050_DEFAULT_ADDRESS 0x68  // address pin low (GND), default for InvenSense evaluation board
+#define s0 24
+#define s1 22
+#define s2 48
+#define s3 44
+#define sensorSalida 52
 
 Simple_MPU6050 mpu;
 Servo servoMotor;
@@ -103,21 +112,46 @@ void straight() {
 }
 void distanceAll() {
   digitalWrite(trigPinFront, HIGH);
+  delayMicroseconds(10);
   digitalWrite(trigPinFront, LOW);
   durationFront = pulseIn(echoPinFront, HIGH);
   distanceFront = (durationFront / 2) / 29.1;
 
   digitalWrite(trigPinLeft, HIGH);
+  delayMicroseconds(10);
   digitalWrite(trigPinLeft, LOW);
   durationLeft = pulseIn(echoPinLeft, HIGH);
   distanceLeft = (durationLeft / 2) / 29.1;
 
   digitalWrite(trigPinRight, HIGH);
+  delayMicroseconds(10);
   digitalWrite(trigPinRight, LOW);
   durationRight = pulseIn(echoPinRight, HIGH);
   distanceRight = (durationRight / 2) / 29.1;
 }
+void sensorOnColor () {
+  digitalWrite(s2, LOW);  //lectura de color rojo
+  digitalWrite(s3, LOW);
+  Rojo_Frec = pulseIn(sensorSalida, LOW);
+  
+  digitalWrite(s2, HIGH);  //lectura color verde
+  digitalWrite(s3, HIGH);
+  Verde_Frec = pulseIn(sensorSalida, LOW);
 
+  digitalWrite(s2, LOW);
+  digitalWrite(s3, HIGH);
+  Azul_Frec = pulseIn(sensorSalida, LOW);
+  
+  int rgbValue = Rojo_Frec + Verde_Frec + Azul_Frec;
+  //valores de la calibracion
+  Serial.println();
+  Serial.print(rgbValue);
+  if (rgbValue > 190) {
+    isSensorOnColor = true; 
+  } else {
+  isSensorOnColor = false; 
+  }
+}
 void rotateRight() {
   if (numberOfLineRight == 5) {
     numberOfLineRight = 1;
@@ -134,8 +168,8 @@ void rotateRight() {
       }
       break;
     case 2:
-      Serial.print("case2");
       while (yawPitRoll[0] < 175) {
+      Serial.print("case2");
         mpu.dmp_read_fifo(false);
         Serial.println();
         Serial.print(yawPitRoll[0]);
@@ -348,11 +382,12 @@ void acomodarWall () {
       if (distanceLeft <= 10) {
         right();
         //Serial.print("righ");
-      } else if (distanceRight <= 10 {
+      } else if (distanceRight <= 10) {
         left();
         //Serial.print("izq");
-      } else {
-        //
+      } 
+      else {
+      straight();
       }
 }
 void run() {
@@ -422,22 +457,28 @@ void setup() {
 
   ledGreen();
 }
-
 void loop() {
   mpu.dmp_read_fifo(false);
   distanceAll();
-  if (distanceFront <= 35) {
+  sensorOnColor();
+  if (isSensorOnColor || (distanceFront <= 35 && distanceFront > 3)) {
+    ledOff();
+    distanceAll();
     checkCorner();
+    mpu.dmp_read_fifo(false);
     rotateDepend();
     while (true) {
       mpu.dmp_read_fifo(false);
+      sensorOnColor();
       distanceAll();
-      if (distanceFront <= 35) {
+      if (isSensorOnColor || (distanceFront <= 35 && distanceFront > 3)) {
+        mpu.dmp_read_fifo(false);
         rotateDepend();
       } else {
         motorForward(200);
         acomodarseDepend();
         acomodarWall();
+
       }
     }
   } else {
