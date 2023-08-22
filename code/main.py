@@ -1,0 +1,64 @@
+import cv2
+import numpy as np
+from picamera.array import PiRGBArray
+from picamera import PiCamera
+import time
+
+# Inicializar la cámara de la Raspberry Pi
+camera = PiCamera()
+camera.resolution = (640, 480)
+camera.framerate = 30
+raw_capture = PiRGBArray(camera, size=(640, 480))
+
+# Esperar a que la cámara se inicialice
+time.sleep(0.1)
+
+for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
+    image = frame.array
+    
+    # Convertir el fotograma a HSV (Hue, Saturation, Value)
+    hsv_frame = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    
+    # Definir rangos de colores en HSV para verde y rojo
+    lower_green = np.array([40, 40, 40])
+    upper_green = np.array([80, 255, 255])
+    
+    lower_red = np.array([0, 100, 100])
+    upper_red = np.array([10, 255, 255])
+    
+    # Crear máscaras para los colores de interés
+    green_mask = cv2.inRange(hsv_frame, lower_green, upper_green)
+    red_mask = cv2.inRange(hsv_frame, lower_red, upper_red)
+    
+    # Encontrar contornos en las máscaras
+    green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    red_contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Procesar contornos verdes
+    if len(green_contours) > 0:
+        largest_green_contour = max(green_contours, key=cv2.contourArea)
+        if cv2.contourArea(largest_green_contour) > 100:
+            x, y, w, h = cv2.boundingRect(largest_green_contour)
+            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            print("Cubo verde detectado")
+    
+    # Procesar contornos rojos
+    if len(red_contours) > 0:
+        largest_red_contour = max(red_contours, key=cv2.contourArea)
+        if cv2.contourArea(largest_red_contour) > 100:
+            x, y, w, h = cv2.boundingRect(largest_red_contour)
+            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            print("Cubo rojo detectado")
+    
+    # Mostrar el fotograma con las detecciones
+    cv2.imshow("Detected Cubes", image)
+    
+    # Limpiar el buffer de captura para el siguiente fotograma
+    raw_capture.truncate(0)
+    
+    # Salir si se presiona la tecla 'q'
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Cerrar ventanas al finalizar
+cv2.destroyAllWindows()
