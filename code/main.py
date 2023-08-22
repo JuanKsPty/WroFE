@@ -6,8 +6,9 @@ import time
 
 # Inicializar la cámara de la Raspberry Pi
 camera = PiCamera()
-camera.resolution = (640, 480)
+camera.resolution = (320, 192)
 camera.framerate = 30
+camera.rotation = 180
 raw_capture = PiRGBArray(camera, size=(640, 480))
 
 # Esperar a que la cámara se inicialice
@@ -39,17 +40,22 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
         largest_green_contour = max(green_contours, key=cv2.contourArea)
         if cv2.contourArea(largest_green_contour) > 100:
             x, y, w, h = cv2.boundingRect(largest_green_contour)
+            x_gr, y_gr, w_gr, h_gr = cv2.boundingRect(largest_green_contour)
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            print("Cubo verde detectado")
     
     # Procesar contornos rojos
     if len(red_contours) > 0:
         largest_red_contour = max(red_contours, key=cv2.contourArea)
         if cv2.contourArea(largest_red_contour) > 100:
             x, y, w, h = cv2.boundingRect(largest_red_contour)
+            x_rd, y_rd, w_rd, h_rd = cv2.boundingRect(largest_red_contour)
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+    if len(red_contours) > 0 or len(green_contours) > 0:
+        if (w_gr+h_gr) > (w_rd+h_rd):
+            print("Cubo verde detectado")
+        else:
             print("Cubo rojo detectado")
-    
     # Mostrar el fotograma con las detecciones
     cv2.imshow("Detected Cubes", image)
     
