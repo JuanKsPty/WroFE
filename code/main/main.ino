@@ -23,6 +23,7 @@ float accelValues[3];
 int numberOfLineRight = 1;
 int numberOfLineLeft = 1;
 int numberOFLaps = 0;
+int acomodarseLine;
 bool rightDirection = false;
 bool leftDirection = false;
 bool start = false;
@@ -129,11 +130,11 @@ void distanceAll() {
   durationRight = pulseIn(echoPinRight, HIGH);
   distanceRight = (durationRight / 2) / 29.1;
 }
-void sensorOnColor () {
+void sensorOnColor() {
   digitalWrite(s2, LOW);  //lectura de color rojo
   digitalWrite(s3, LOW);
   Rojo_Frec = pulseIn(sensorSalida, LOW);
-  
+
   digitalWrite(s2, HIGH);  //lectura color verde
   digitalWrite(s3, HIGH);
   Verde_Frec = pulseIn(sensorSalida, LOW);
@@ -141,15 +142,15 @@ void sensorOnColor () {
   digitalWrite(s2, LOW);
   digitalWrite(s3, HIGH);
   Azul_Frec = pulseIn(sensorSalida, LOW);
-  
+
   int rgbValue = Rojo_Frec + Verde_Frec + Azul_Frec;
   //valores de la calibracion
   Serial.println();
   Serial.print(rgbValue);
   if (rgbValue > 190) {
-    isSensorOnColor = true; 
+    isSensorOnColor = true;
   } else {
-  isSensorOnColor = false; 
+    isSensorOnColor = false;
   }
 }
 void rotateRight() {
@@ -169,7 +170,7 @@ void rotateRight() {
       break;
     case 2:
       while (yawPitRoll[0] < 175) {
-      Serial.print("case2");
+        Serial.print("case2");
         mpu.dmp_read_fifo(false);
         Serial.println();
         Serial.print(yawPitRoll[0]);
@@ -258,8 +259,20 @@ void rotateLeft() {
   numberOfLineLeft += 1;
   numberOFLaps += 1;
 }
-void acomodarseRight() {
-  switch (numberOfLineRight) {
+void checkAcomodarse() {
+  if (yawPitRoll[0] > -20 && yawPitRoll[0] < 20) {
+    acomodarseLine = 1;
+  } else if (yawPitRoll[0] > 70 && yawPitRoll[0] < 110) {
+    acomodarseLine = 2;
+  } else if ((yawPitRoll[0] > 160 && yawPitRoll[0] < 180) || (yawPitRoll[0] > -180 && yawPitRoll[0] < -160)) {
+    acomodarseLine = 3;
+  } else {
+    acomodarseLine = 4;
+  }
+}
+void acomodarse() {
+  checkAcomodarse();
+  switch (acomodarseLine) {
     case 1:
       if (yawPitRoll[0] > -20 && yawPitRoll[0] < -5) {
         right();
@@ -306,54 +319,7 @@ void acomodarseRight() {
       break;
   }
 }
-void acomodarseLeft() {
-  switch (numberOfLineLeft) {
-    case 1:
-      if (yawPitRoll[0] > -20 && yawPitRoll[0] < -5) {
-        right();
-        //Serial.print("righ");
-      } else if (yawPitRoll[0] > 5 && yawPitRoll[0] < 20) {
-        left();
-        //Serial.print("izq");
-      } else {
-        straight();
-      }
-      break;
-    case 2:
-      if (yawPitRoll[0] > -110 && yawPitRoll[0] < -95) {
-        right();
-        Serial.print("righ");
-      } else if (yawPitRoll[0] > -85 && yawPitRoll[0] < -70) {
-        left();
-        Serial.print("izq");
-      } else {
-        straight();
-      }
-      break;
-    case 3:
-      if (yawPitRoll[0] > 160 && yawPitRoll[0] < 175) {
-        right();
-        Serial.print("righ");
-      } else if (yawPitRoll[0] > -175 && yawPitRoll[0] < -160) {
-        left();
-        Serial.print("izq");
-      } else {
-        straight();
-      }
-      break;
-    case 4:
-      if (yawPitRoll[0] > 70 && yawPitRoll[0] < 87) {
-        right();
-        Serial.print("righ");
-      } else if (yawPitRoll[0] > 93 && yawPitRoll[0] < 110) {
-        left();
-        Serial.print("izq");
-      } else {
-        straight();
-      }
-      break;
-  }
-}
+
 void checkCorner() {  // cambia el valor si, tiene que girar a la izquierda o a la derecha
   if (distanceLeft > distanceRight) {
     leftDirection = true;
@@ -368,27 +334,19 @@ void rotateDepend() {
     rotateRight();
   }
 }
-void acomodarseDepend() {
-  if (leftDirection == true) {
-    acomodarseLeft();
-    ledRed();
+
+
+void acomodarWall() {
+  distanceAll();
+  if (distanceLeft <= 10) {
+    right();
+    //Serial.print("righ");
+  } else if (distanceRight <= 10) {
+    left();
+    //Serial.print("izq");
   } else {
-    acomodarseRight();
-    ledYellow();
+    straight();
   }
-}
-void acomodarWall () {
-      distanceAll();
-      if (distanceLeft <= 10) {
-        right();
-        //Serial.print("righ");
-      } else if (distanceRight <= 10) {
-        left();
-        //Serial.print("izq");
-      } 
-      else {
-      straight();
-      }
 }
 void run() {
   distanceAll();
@@ -401,12 +359,12 @@ void run() {
         rotateDepend();
       } else {
         motorForward(200);
-        acomodarseLeft();
+        acomodarse();
       }
     }
   } else {
     motorForward(200);
-    acomodarseDepend();
+    acomodarse();
     ledGreen();
   }
 }
@@ -476,14 +434,13 @@ void loop() {
         rotateDepend();
       } else {
         motorForward(200);
-        acomodarseDepend();
-        acomodarWall();
-
+        acomodarse();
+        //acomodarWall();
       }
     }
   } else {
     motorForward(200);
-    acomodarseDepend();
+    acomodarse();
     ledGreen();
   }
 }
