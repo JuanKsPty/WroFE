@@ -51,11 +51,12 @@ for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port
             x_rd, y_rd, w_rd, h_rd = cv2.boundingRect(largest_red_contour)
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
-    if len(red_contours) > 0 or len(green_contours) > 0:
-        if (w_gr+h_gr) > (w_rd+h_rd):
-            print("Cubo verde detectado")
-        else:
-            print("Cubo rojo detectado")
+    if largest_green_area > largest_red_area and largest_green_area > 120:
+        ser.write(b'G')  # Enviar 'G' para cuadro verde
+        print("Cubo verde detectado")
+    elif largest_red_area > largest_green_area and largest_red_area > 120:
+        ser.write(b'R')  # Enviar 'R' para cuadro rojo
+        print("Cubo rojo detectado")
     # Mostrar el fotograma con las detecciones
     cv2.imshow("Detected Cubes", image)
     
