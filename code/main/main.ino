@@ -11,12 +11,20 @@ const int echoPinLeft = 8;
 const int trigPinRight = 5;
 const int echoPinRight = 6;
 const int buttonPin = 11;  // button
+const int trigPinRightFront = 14;
+const int echoPinRightFront = 15;
+const int trigPinLeftFront = 16;
+const int echoPinLeftFront = 17;
 long durationFront;
 int distanceFront;
 long durationLeft;
 int distanceLeft;
 long durationRight;
 int distanceRight;
+long durationLeftFront;
+int distanceLeftFront;
+long durationRightFront;
+int distanceRightFront;
 float yawPitRoll[3];
 float gyroValues[3];
 float accelValues[3];
@@ -129,6 +137,43 @@ void distanceAll() {
   digitalWrite(trigPinRight, LOW);
   durationRight = pulseIn(echoPinRight, HIGH);
   distanceRight = (durationRight / 2) / 29.1;
+
+  digitalWrite(trigPinRightFront, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinRightFront, LOW);
+  durationRightFront = pulseIn(echoPinRightFront, HIGH);
+  distanceRightFront = (durationRightFront / 2) / 29.1;
+
+  digitalWrite(trigPinLeftFront, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinLeftFront, LOW);
+  durationLeftFront = pulseIn(echoPinLeftFront, HIGH);
+  distanceLeftFront = (durationLeftFront / 2) / 29.1;
+}
+void esquivarLeft () {
+  while ((distanceLeftFront <= 10 && distanceLeftFront >= 3)|| (distanceFront <= 10 && distanceLeftFront >= 3)) {
+  left();
+  }
+  right();
+  delay(300);
+}
+void esquivar () {
+  while ((distanceRightFront <= 10 && distanceRightFront >= 3)|| (distanceFront <= 10 && distanceLeftFront >= 3)) {
+  right();
+  }
+  left();
+  delay(300);
+}
+void checkOBj() {
+  if (Serial.available() > 0) {
+    char received = Serial.read();
+    if (received == 'R') {
+      ledRed();
+    }
+    else if (received == 'G') {
+     ledGreen();
+    }
+  }
 }
 void sensorOnColor() {
   digitalWrite(s2, LOW);  //lectura de color rojo
@@ -416,10 +461,11 @@ void setup() {
   ledGreen();
 }
 void loop() {
+  motorForward(220);
   mpu.dmp_read_fifo(false);
   distanceAll();
-  sensorOnColor();
-  if (isSensorOnColor || (distanceFront <= 35 && distanceFront > 3)) {
+
+  if (distanceFront <= 35 && distanceFront > 4) {
     ledOff();
     distanceAll();
     checkCorner();
@@ -427,19 +473,20 @@ void loop() {
     rotateDepend();
     while (true) {
       mpu.dmp_read_fifo(false);
-      sensorOnColor();
+      //sensorOnColor();
       distanceAll();
-      if (isSensorOnColor || (distanceFront <= 35 && distanceFront > 3)) {
+      if (distanceFront <= 35 && distanceFront > 3) {
         mpu.dmp_read_fifo(false);
         rotateDepend();
       } else {
         motorForward(200);
+
         acomodarse();
         //acomodarWall();
       }
     }
   } else {
-    motorForward(200);
+    mpu.dmp_read_fifo(false);
     acomodarse();
     ledGreen();
   }
